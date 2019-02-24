@@ -1,12 +1,9 @@
-[submodule "oh-my-zsh"]
+[submodule ".oh-my-zsh"]
 	path = .oh-my-zsh
 	url = git://github.com/robbyrussell/oh-my-zsh.git
-
-[submodule "awesome-copycats"]
-	path = .config/awesome 
+[submodule ".config/awesome-copycats"]
+	path = .config/awesome-copycats
 	url = git://github.com/lcpz/awesome-copycats.git
-
-[submodule "spacemacs"]
-	branch = develop
+[submodule ".emacs.d"]
 	path = .emacs.d
 	url = git://github.com/syl20bnr/spacemacs.git

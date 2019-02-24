@@ -6,6 +6,13 @@
 --]]
 
 -- {{{ Required libraries
+-- Adjusting paths
+package.path = os.getenv("HOME") 
+            .. "/.config/awesome-copycats/?/init.lua;" 
+            .. os.getenv("HOME") 
+            .. "/.config/awesome-copycats/?.lua;" 
+            .. package.path
+
 local awesome, client, mouse, screen, tag = awesome, client, mouse, screen, tag
 local ipairs, string, os, table, tostring, tonumber, type = ipairs, string, os, table, tostring, tonumber, type
 
