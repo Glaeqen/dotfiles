@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+if [ "$1" == "clipboard-region" ]
+then
+  maim -s | xclip -selection clipboard -t image/png
+elif [ "$1" == "clipboard-window" ]
+then
+  maim -i $(xdotool getactivewindow) | xclip -selection clipboard -t image/png
+elif [ "$1" == "clipboard-screen" ]
+then
+  maim | xclip -selection clipboard -t image/png
+else
+  echo "Wrong argument"
+  exit -1
+fi

@@ -1,0 +1,316 @@
+Arch Linux Step-By-Step installation process for dummies.
+GPT-UEFI Partition
+DualBoot Windows
+
+
+I. Preparations
+1. Check internet connection
+  $ ping google.pl
+2. Is your setup capable of handling EFI and is in UEFI mode?
+  $ efivar -l
+Any result? If yes, it is.
+
+II. Disk Management 
+Useful stuff:
+  $ lsblk --> Outputs info about storage devices on your PC, including mountpoints, volume etc.
+  $ cfdisk --> Manipulate disk partition table.
+
+1. Partitioning 
+  Achtung 0. Formatting filesystem(FS) and setting mountpoint(MP) will take place during further part of installation. (PT) means partition type.
+  Partition your disk in the following manner using any known to you partition manager (eg. $ cfdisk):
+    
+    (1)  512MB(approx.)   PT: EFI System (GUID:EF00); FS: FAT32;   MP: /boot --> (EPS) Partition needed to handle UEFI booting management.
+        
+        Achtung DualBoot: If Windows is already installed on the HDD/SSD, EFI Partition is already there.
+        It only has to be mounted to /boot mountpoint and setup properly by GRUB/any bootloader (you'll see later!).
+
+    (2)  [0,5-1,5]xRAMGB  PT: Linux swap (GUID:8200); FS: swap; --> SWAP
+
+    (3)  XGB   PT: Linux filesystem (GUID:8300); FS: ext4;  MP: /
+
+  Achtung 1. If there's no other partitions running mountpoints like /home /tmp etc. they'll be mounted automatically on '/' (on root) by default.
+  Achtung 2. Any partition which will be use to store data (Mountpoints like /; /home; etc.) should use ext4 file system.
+  Achtung 3. GUID is used by some partition managers to set partiton types. It's just a code describing specific PT.
+2. Formatting
+  Achtung 0. Change sdX to proper device representing partition specific partition.
+
+  To format (1) partition use:  $ mkfs.fat -F32 /dev/sdX
+
+  !Achtung 1! Don't format EFI Partition unless you just created it! Doing so will destroy Windows bootloader if there is any.
+
+  To format (2) partition use:  $ mkswap /dev/sdX
+  To format (3) partition use:  $ mkfs.ext4 /dev/sdX
+
+3. Mounting
+  !Achtung 0! Arch Linux ISO can be easily used for fixing problems in exisiting installation of Arch (like with booting etc.)
+  Getting access to installed OS shell can be done with mounting proper partitions into the /mnt directory of ISO and using
+  the following script: $ arch-chroot /mnt
+
+  Now, you can manage your system like through SSH session.
+
+  To mount the partition sdX used for '/' mountpoint: 
+    $ mount /dev/sdX /mnt
+ 
+ Achtung 1. To mount partitions to any other mountpoint, you have to make proper directories in /mnt. See examples below.
+  
+  To mount the partition sdX used for '/boot' mountpoint:
+    $ mkdir /mnt/boot
+    $ mount /dev/sdX /mnt/boot
+  
+  Similarly for other mountpoints.
+
+  To activate swap partition use: $ swapon /dev/sdX
+
+III. Installation
+
+1. Setting up pacman (Arch Linux native package manager)
+  
+  1.1 Make backup of your mirrorlist file (this file contains server list used by pacman to get to repos). Eg. like this:
+    $ cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
+  
+  1.2 Uncomment mirrorlist lines (#Server >> Server). Eg. using 'sed' tool.
+    $ sed -i 's/^#Server/Server/' /etc/pacman.d/mirrorlist.backup > /etc/pacman.d/mirrorlist
+  
+  1.3 Use rankmirrors script to rank mirrors by their speed.
+    $ rankmirrors -n <desired_number_of_fastest_servers_to_be_included_in_mirrorlist> /etc/pacman.d/mirrorlist.backup > /etc/pacman.d/mirrorlist
+
+2. Installation of system's base using script $ pacstrap. 
+  Achtung 0. $ pacstrap uses pacman to install desired packages to specifed new root directory.
+  Achtung 1. If no packages are given as an argument to $ pacstrap, it defaults to "base" group.
+
+  To install Arch Linux base system files use following command:
+    $ pacstrap -i /mnt base
+      Flag "-i" avoids autoconfirmation during installation
+  
+  To install Arch Linux base system files along with packages for development usage:
+  (Recommended! --> It contains of basic software like gcc, automake, make, autoconf widely used eg. by AUR to build.)
+    $ pacstrap -i /mnt base base-devel
+
+3. Generate fstab file to "hardcode" partition/disk configuration. Now your newly installed OS knows what to do with the HDD/SSD/whatever.
+  To do that, perform:
+    $ genfstab -U -p /mnt >> /mnt/etc/fstab
+      Flag "-U" indicates using UUIDs to identify partitions
+      Flag "-p" excludes pseudomounts from polluting fstab file (in fact - default command behaviour).
+  
+  Achtung 1. IF you're using SSD which supports continous TRIM for sustained long-term performance, use "discard" option in fstab file.
+  Achtung 2. IF you're using SSD, set "noatime" option in fstab file to decrease amount of R/W cycles.
+
+  TODO: "nointegrity" option? Wiki:Improving_performance#Storage_devices
+
+IV. Setting up the Arch
+
+1. "SSH" into your OS
+  Use following script to get access to already installed OS's shell:
+    $ arch-chroot /mnt
+
+2. Generate and apply locale
+  To generate proper locale
+    2.1 Uncomment desired locale in /etc/locale.gen by eg. vi
+      (Default recommended: en_US.UTF-8)
+      
+      $ vi /etc/locale.gen
+      
+      And save the file.
+    2.2 Generate locale (using edited file above) with command:
+      
+      $ locale-gen
+
+    2.3 Save locale environmental variable to file for "hardcoding" purposes.
+
+      To do this make file /etc/locale.conf end fill it with following line:
+      LANG=<locale>
+      eg. LANG=en_US.UTF-8
+
+      Alternative approach:
+        $ echo "LANG=en_US.UTF-8" > /etc/locale.conf
+
+      To apply that variable to current BASH shell session, perform:
+        $ export LANG=en_US.UTF-8
+
+3. Setting up time
+  3.1 Setting up timezone
+    Find desired timezone/city/country by browsing /usr/share/zoneinfo directory. (For Poland: /usr/share/zoneifno/Europe/Warsaw)
+
+    To apply timezone, make symbolic link with following command:
+      $ ln -s /usr/share/zoneinfo/correct_timezone_file /etc/localtime
+
+  3.2 Setting up hardware clock
+    To do this, perform:
+      $ hwclock --systohc --localtime
+      Flag "--systohc" sets hardware clock to system clock.
+      Flag "--localtime" used for indicating timescale hardware clock is set to
+                         (alternative: "--utc"; localtime is better, compatible
+                         with Windows when dualbooting
+
+4. Setting up system details
+  4.1 Setting up hostname
+    To do that, edit /etc/hostname file and type hostname in. For example:
+      $ echo my_hostname_is_so_cute > /etc/hostname
+
+  4.2 Activating [multilib] pacman database
+    Multilib database allows you to run 32 bit applications in your system. (32 bit libraries etc.)
+    
+    To do that, uncomment line
+    #[multilib]
+		#Include = (...)
+    to
+    [multilib]
+		Include = (...)
+
+    in /etc/pacman.conf directory
+    (Uncommenting it manully is a bit faster than typing sed command into the command line. I guess..)
+
+		Then, perform
+			$ pacman -Sy
+		to download package list from new applied repo
+  
+  4.3 Change root password
+    Just type in:
+      $ passwd
+    and set desired password
+
+  4.4 Add new user and set personal password
+    To add user, perform:
+      $ useradd -m -g users -G wheel -s /bin/bash <nickname>
+    where <nickname> is your desired nickname.
+    Flag "-m" creates your 'home' directory in /home if it doesn't exist.
+    Flag "-g" <group> adds user to initial group. It's recommended to set it to 'users'.
+    Flag "-G" <group1>,<group2>,... adds users to specific groups different permissions. 
+    Achtung 0. For casual user groups 'wheel' allows default sudo using. Nothing else matters really.
+    
+    To change its password, type in:
+      $ passwd <nickname>
+    and set your password
+
+  4.5 Edit sudoers file
+    Now, you have to edit sudoers file to grant your group "wheel" access to sudo command with $ visudo command.
+    Before that you have to indicate what editor visudo is supposed to use by environmental variable.
+    
+    You can do all that by running:
+    EDITOR=vi visudo
+
+    Achtung 0. Of course, you can edit /etc/sudoers file manully without $ visudo tool. Main difference is that
+    $ visudo checks syntax before actual overwriting edited sudoers file. It prevents you from unintentional
+    messing up.
+    Achtung 1. Eqivalent for $ visudo command for any text file (not only sudoers) is $ sudoedit.
+    Recommended for editing any system file because of security.
+
+    Uncomment line
+
+    # %wheel ALL=(ALL) ALL
+    to
+    %wheel ALL=(ALL) ALL
+
+    Achtung 2. There're many default options of getting administrator privileges. Read details in sudoers file.
+    
+5.  Bootloader management:
+  In following example we will use systemd-boot as our bootloader.
+  
+  5.1 Check if your UEFI Runtime Variables support is mounted
+    Perform command:
+      $ mount -t efivarfs efivarfs /sys/firmware/efi/efivars
+    If it's already mounted, that's fine.
+  
+  5.2 Install systemd-boot
+    Perform command:
+      $ bootctl install
+    Or
+      $ bootctl --path=PATH install
+    if your EFI partition is not mounted on /boot
+
+  5.3 Get UUID of your root partition
+    Perform command:
+      $ blkid -s PARTUUID -o value /dev/sdX
+    where sdX is partition with '/' mountpoint.
+
+  5.4 Create bootloader entry:
+    Create file /boot/loader/entries/arch.conf and edit it
+    Eg. with vim
+      $ vim /boot/loader/entries/arch.conf
+
+    Fill it with:
+
+    title Arch Linux
+    linux /vmlinuz-linux
+    initrd /initramfs-linux.img
+    options root=PARTUUID=<UUID> rw
+
+    where <UUID> is your root partition ID from 5.3 command.
+
+    !!!Achtung 0. If you're running Intel processor you must install intel-ucode package and add option to OS boot entry.
+      5.4.1 Perform: $ pacman -S intel-ucode
+      5.4.2 Now you have to change your entry to look like this:
+
+        title Arch Linux
+        linux /vmlinuz-linux
+        initrd /intel-ucode.img
+        initrd /initramfs-linux.img
+        options root=PARTUUID=<UUID> rw
+
+    Achtung 1. If you're running Windows on your PC on seperate partiton, systemd-boot will automatically detect EFI partiton Windows Boot Manager
+    and generate entries for them.
+
+  6. Setting up internet connection
+    You have to setup up your connection.
+    6.1 For regular cable Ethernet the easiest way is to start dhcpcd systemd daemon for proper interface.
+    
+    Search for correct one by command:
+      $ ifconfig
+    or
+      $ ip link
+
+    Then start up daemon with following command:
+      $ systemctl enable dhcpcd@<interface>.service
+    
+    6.2 The other way is to install networkmanager package
+      $ pacman -S networkmanager network-manager-applet
+
+    And start networkmanager daemon
+      $ systemctl enable NetworkManager.service
+
+V. Setting up graphical user interface (i3wm).
+  1. Download X server
+    $ pacman -S xorg-server xorg-apps xorg-xinit
+
+  2. Download desired DE (Desktop Environment). i3wm example below.
+    $ pacman -S i3-wm
+
+  3. Setup .xinitrc file
+    .xinitrc file is the most basic file which sets up X session.
+
+    You can do this like this:
+    echo "exec i3" > /home/<username>/.xinitrc
+
+  Achtung 0.
+    There might be plenty things to do in here. The most important one is to download proper graphics drivers that fit your GPU hardware. Search arch-wiki for it
+
+VI. End
+
+  To start X session after logging in, perform following command:
+    $ startx
+
+VII. Legacy instructions
+When using AwesomeWM, better look at .install.sh script. Still worth checking out though.
+
+1. Useful packages to install
+  Things worth considering are:
+    - bash-completion --> Package which improves autocompletion in BASH shell. Especially in pacman etc.
+    - Graphics Card Drivers --> Look on wiki which driver is fine for you
+    - If you own laptop, consider tlp package for proper energy management.
+    - If you're running touchpad on your laptop, consider installing xf86-input-libinput package.
+    - Creating .Xresources file to manage Xterm, URxvt config etc.
+    - gvfs; gvfs-mtp --> automounting pendrives etc either manually or by thunar
+    - gksu --> graphical frontend for su. E.g when you want perform action which require additional permission, proper popup will appear.
+    - Display manager like LightDM as login frontend
+    - thunar-archive-plugin and supported file archive software like eg. file-roller 
+    - ttf-dejavu - basic fonts which will prevent your fresh i3 installation from freaking out.
+    - tmux - terminal multiplexer, yey
+
+2. i3 useful packages
+	- feh - setting you wallpaper
+	- i3blocks - (instead of i3status)
+	- fontawesome - fancy "font/icons" on your taskbar
+	- lxappearance - GTK Theme manager. Useful tool.
+	- compton - external compositioner
+  - xfce4-screenshooter - for screenshots
+  - xfce4-clipman-plugin - Excellent clipboard manager which feature copying images

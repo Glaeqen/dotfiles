@@ -1,0 +1,5 @@
+[user]
+	email = glaeqen@gmail.com
+	name = Glaeqen
+[alias]
+	loga = log --all --oneline --graph --decorate

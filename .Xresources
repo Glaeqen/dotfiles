@@ -1,0 +1,32 @@
+! ------------------------------------------------------------------------------
+! Xterm
+! ------------------------------------------------------------------------------
+XTerm*reverseVideo: on
+! ------------------------------------------------------------------------------
+! urxvt terminal emulator
+! ------------------------------------------------------------------------------
+URxvt*background: rgb:24/24/24
+URxvt*foreground: white
+URxvt*scrollBar: false
+URxvt*font: xft:Office Code Pro:size=11
+URxvt*perl-ext-common: selection-to-clipboard
+URxvt*cursorBlink: 1
+URxvt*cursorUnderline: 1
+URxvt.iso14755: false
+URxvt.iso14755_52: false
+! ------------------------------------------------------------------------------
+! ROFI Color theme
+! ------------------------------------------------------------------------------
+rofi.color-enabled: true
+rofi.font: xos4 Terminus 10
+rofi.color-urgent: #210000, #845554, #450000, #690200, #c58181
+rofi.color-window: #242424, #242424, #242424
+rofi.color-normal: #2f2f2f, #aeaeae, #3f3f3f, #898989, #ececec
+rofi.color-active: #2f2f2f, #aeaeae, #3f3f3f, #898989, #ececec
+rofi.width: 250
+rofi.location: 8
+rofi.lines: 3
+rofi.hide-scrollbar: true
+rofi.monitor: -1
+
+Xcursor.size: 16
