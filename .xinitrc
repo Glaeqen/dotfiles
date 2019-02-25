@@ -3,5 +3,7 @@ export XENVIRONMENT="$HOME/.Xresources"
 
 PATH=$PATH:$HOME/.tools
 
-exec awesome
+addSamsungMode
+mlast
 
+exec awesome

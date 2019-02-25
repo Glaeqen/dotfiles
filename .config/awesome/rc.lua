@@ -30,20 +30,10 @@ local hotkeys_popup = require("awful.hotkeys_popup").widget
 local my_table      = awful.util.table or gears.table -- 4.{0,1} compatibility
 -- }}}
 
-function dbg(name, obj)
+function dbg(name)
   local log_file = "/tmp/awesomewm.log"
-  local obj_info = ""
-  for k,v in pairs(getmetatable(obj)) do
-    obj_info = obj_info .. string.format("%s:%s\n", k, v)
-  end
-  local log = string.format("> %s <\n%s\nfloating: %s\nmaximised: %s\nfullscreen: %s",
-                            name,
-                            tostring(obj),
-                            tostring(obj.floating),
-                            tostring(obj.maximized),
-                            tostring(obj.fullscreen))
-  awful.spawn.with_shell(string.format("notify-send \"%s\"", log))
-  awful.spawn.with_shell(string.format("echo \"%s\" >> %s", log, log_file))
+  awful.spawn.with_shell(string.format("notify-send \"%s\"", tostring(name)))
+  awful.spawn.with_shell(string.format("echo \"%s\" >> %s", tostring(name), log_file))
 end
 
 -- {{{ Error handling
@@ -115,6 +105,7 @@ local terminal     = "urxvtc"
 local editor       = os.getenv("EDITOR") or "vim"
 local gui_editor   = "gvim"
 local browser      = "chromium"
+local incognito_browser = browser .. " --incognito"
 local guieditor    = "atom"
 local scrlocker    = "slock"
 
@@ -208,7 +199,6 @@ lain.layout.cascade.tile.extra_padding = 5
 lain.layout.cascade.tile.nmaster       = 5
 lain.layout.cascade.tile.ncol          = 2
 
--- beautiful.init(string.format("%s/.config/awesome/themes/%s/theme.lua", os.getenv("HOME"), chosen_theme))
 beautiful.init(string.format("%s/.config/awesome/theme-personal.lua", os.getenv("HOME")))
 -- }}}
 
@@ -234,7 +224,7 @@ awful.util.mymainmenu = freedesktop.menu.build({
 -- hide menu when mouse leaves it
 --awful.util.mymainmenu.wibox:connect_signal("mouse::leave", function() awful.util.mymainmenu:hide() end)
 
---menubar.utils.terminal = terminal -- Set the Menubar terminal for applications that require it
+menubar.utils.terminal = terminal -- Set the Menubar terminal for applications that require it
 -- }}}
 
 -- {{{ Screen
@@ -264,6 +254,13 @@ root.buttons(my_table.join(
 
 -- {{{ Key bindings
 globalkeys = my_table.join(
+    -- System keys
+    awful.key({ modkey }, "F4", function() os.execute("systemctl poweroff") end,
+              {description = "shutdown", group = "system"}),
+    awful.key({ modkey }, "F3", function() os.execute("systemctl reboot") end,
+              {description = "reboot", group = "system"}),
+    awful.key({ modkey }, "F2", function() os.execute("systemctl suspend") end,
+              {description = "suspend", group = "system"}),
     -- Take a screenshot
     awful.key({ "Control" }, "Print", function() os.execute("clipboard clipboard-region") end,
               {description = "screenshot region", group = "hotkeys"}),
@@ -416,6 +413,8 @@ globalkeys = my_table.join(
     -- User programs
     awful.key({ modkey }, "q", function () awful.spawn(browser) end,
               {description = "run browser", group = "launcher"}),
+    awful.key({ modkey, altkey }, "q", function () awful.spawn(incognito_browser) end,
+              {description = "run browser", group = "launcher"}),
     awful.key({ modkey }, "a", function () awful.spawn(guieditor) end,
               {description = "run gui editor", group = "launcher"}),
 
@@ -566,6 +565,10 @@ awful.rules.rules = {
     { rule_any = { type = { "dialog", "normal" } },
       properties = { titlebars_enabled = false } },
 
+    -- TODO fix floating implicit nil state by some proper workaround
+    { rule_any = { type = { "dialog" } },
+      properties = { floating = true } },
+
 }
 -- }}}
 
@@ -581,20 +584,10 @@ client.connect_signal("manage", function (c)
         -- Prevent clients from being unreachable after screen count changes.
         awful.placement.no_offscreen(c)
     end
-   -- dbg("manage", c)
-   -- Dirty workaround for https://github.com/awesomeWM/awesome/issues/2698
-    c.floating = not c.floating
-    c.floating = not c.floating
 end)
 
 client.connect_signal("property::floating", function(c)
-   -- dbg("property::floating", c)
     c.ontop = c.floating
-end)
-
-client.connect_signal("property::fullscreen", function (c)
-    -- dbg("property::fullscreen", c)
-    -- c:raise()
 end)
 
 -- Add a titlebar if titlebars_enabled is set to true in the rules.
@@ -663,6 +656,11 @@ end
 client.connect_signal("property::maximized", border_adjust)
 client.connect_signal("focus", border_adjust)
 client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
+
+-- Notification icon size
+naughty.config.defaults['icon_size'] = 50
+-- Menubar height
+menubar.geometry["height"] = 32
 
 -- possible workaround for tag preservation when switching back to default screen:
 -- https://github.com/lcpz/awesome-copycats/issues/251
