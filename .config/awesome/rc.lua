@@ -401,6 +401,19 @@ globalkeys = my_table.join(
             beautiful.volume.update()
         end,
         {description = "volume down", group = "hotkeys"}),
+    awful.key({ modkey }, "=",
+        function ()
+            os.execute(string.format("amixer -q set %s 1%%+", beautiful.volume.channel))
+            beautiful.volume.update()
+        end,
+        {description = "volume up", group = "hotkeys"}),
+    awful.key({ modkey }, "-",
+        function ()
+            os.execute(string.format("amixer -q set %s 1%%-", beautiful.volume.channel))
+            beautiful.volume.update()
+        end,
+        {description = "volume down", group = "hotkeys"}),
+
     awful.key({ }, "XF86AudioMute",
         function ()
           -- To be fixed, messed up pulseaudio muting
@@ -578,9 +591,6 @@ awful.rules.rules = {
       properties = { titlebars_enabled = false } },
 
     -- TODO fix floating implicit nil state by some proper workaround
-    { rule_any = { type = { "dialog" } },
-      properties = { floating = true } },
-
 }
 -- }}}
 
