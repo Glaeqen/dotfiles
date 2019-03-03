@@ -284,13 +284,25 @@ globalkeys = my_table.join(
     awful.key({ modkey,           }, "s",      hotkeys_popup.show_help,
               {description = "show help", group="awesome"}),
 
-    -- Tag browsing
-    awful.key({ modkey, "Shift"   }, "Tab",   awful.tag.viewprev,
-              {description = "view previous", group = "tag"}),
-    awful.key({ modkey,           }, "Tab",  awful.tag.viewnext,
-              {description = "view next", group = "tag"}),
-    awful.key({ modkey,           }, "Escape", awful.tag.history.restore,
-              {description = "go back", group = "tag"}),
+    -- Roll through clients
+    awful.key({ modkey, "Shift"   }, "Tab",
+        function ()
+          awful.client.focus.byidx(-1)
+        end,
+              {description = "focus previous by index", group = "client"}),
+    awful.key({ modkey,           }, "Tab",
+        function ()
+          awful.client.focus.byidx(1)
+        end,
+              {description = "focus next by index", group = "client"}),
+    awful.key({ modkey,           }, "Escape",
+        function ()
+            awful.client.focus.history.previous()
+            if client.focus then
+                client.focus:raise()
+            end
+        end,
+        {description = "last focused client", group = "client"}),
 
     -- By direction client focus
     awful.key({ modkey }, "j",
@@ -584,10 +596,6 @@ client.connect_signal("manage", function (c)
         -- Prevent clients from being unreachable after screen count changes.
         awful.placement.no_offscreen(c)
     end
-end)
-
-client.connect_signal("property::floating", function(c)
-    c.ontop = c.floating
 end)
 
 -- Add a titlebar if titlebars_enabled is set to true in the rules.
