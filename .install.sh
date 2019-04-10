@@ -3,6 +3,8 @@ PACMAN=(
 pacman -S
 # Microcode support for Intel CPUs
 intel-ucode
+# Pacman utilities (checkupdates, rankmirrors)
+pacman-contrib
 # Core graphics
 xorg-server
 xorg-apps
